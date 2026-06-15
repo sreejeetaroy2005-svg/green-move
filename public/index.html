@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GreenMove — Blockchain-Verified Green Commuting</title>
+  <meta name="description" content="The only green commute platform where every trip is blockchain-verified, WhatsApp-loggable, and redeemable for real employer rewards.">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/app.js"></script>
+  <style>
+    .hero-stats {
+      display: flex;
+      gap: 32px;
+      justify-content: center;
+      margin-top: 28px;
+      flex-wrap: wrap;
+    }
+    .hero-stat {
+      text-align: center;
+    }
+    .hero-stat .val {
+      font-size: 1.8rem;
+      font-weight: 800;
+      background: var(--green-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-stat .lbl {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+    .divider {
+      width: 1px;
+      background: var(--border);
+      margin: 0 4px;
+    }
+    .features {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+    .feature-tag {
+      padding: 5px 12px;
+      background: rgba(0,230,118,0.08);
+      border: 1px solid rgba(0,230,118,0.15);
+      border-radius: 999px;
+      font-size: 0.75rem;
+      color: var(--green);
+    }
+    .error-msg {
+      background: rgba(248,113,113,0.1);
+      border: 1px solid rgba(248,113,113,0.3);
+      color: #f87171;
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 0.88rem;
+      margin-top: -8px;
+      margin-bottom: 12px;
+      display: none;
+    }
+    .success-msg {
+      background: rgba(0,230,118,0.1);
+      border: 1px solid rgba(0,230,118,0.3);
+      color: var(--green);
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 0.88rem;
+      margin-top: -8px;
+      margin-bottom: 12px;
+      display: none;
+    }
+
+    /* Auth tabs */
+    .auth-tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: 24px;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      background: var(--bg-input);
+      padding: 4px;
+    }
+    .auth-tab {
+      flex: 1;
+      padding: 10px 0;
+      text-align: center;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: all 0.3s ease;
+      color: var(--text-muted);
+      background: transparent;
+      border: none;
+      font-family: 'Outfit', sans-serif;
+      letter-spacing: 0;
+      text-transform: none;
+      width: auto;
+      box-shadow: none;
+    }
+    .auth-tab:hover:not(.active) {
+      color: var(--text-main);
+      background: transparent;
+      transform: none;
+      box-shadow: none;
+    }
+    .auth-tab.active {
+      background: var(--green-gradient);
+      color: #040805;
+      box-shadow: 0 2px 8px rgba(0,230,118,0.3);
+      transform: none;
+    }
+
+    /* Role selector */
+    .role-selector {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+    .role-option {
+      flex: 1;
+      padding: 12px 8px;
+      text-align: center;
+      cursor: pointer;
+      border-radius: var(--radius-sm);
+      background: var(--bg-input);
+      border: 2px solid transparent;
+      transition: all 0.3s ease;
+      font-family: 'Outfit', sans-serif;
+      box-shadow: none;
+      width: auto;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      letter-spacing: 0;
+      text-transform: none;
+      font-weight: 500;
+    }
+    .role-option:hover {
+      border-color: var(--border-glow);
+      color: var(--text-main);
+      transform: none;
+      box-shadow: none;
+      background: var(--bg-input);
+    }
+    .role-option.selected {
+      border-color: var(--green);
+      background: rgba(0,230,118,0.08);
+      color: var(--green);
+      box-shadow: 0 0 12px rgba(0,230,118,0.15);
+      transform: none;
+    }
+    .role-option .role-icon {
+      font-size: 1.5rem;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    /* Conditional fields */
+    .conditional-field {
+      display: none;
+    }
+    .conditional-field.visible {
+      display: block;
+    }
+
+    /* Password strength */
+    .pwd-strength {
+      height: 3px;
+      border-radius: 2px;
+      margin-top: 4px;
+      transition: all 0.3s ease;
+      background: var(--bg-input);
+    }
+    .pwd-strength .bar {
+      height: 100%;
+      border-radius: 2px;
+      transition: all 0.3s ease;
+      width: 0;
+    }
+    .pwd-strength .bar.weak { width: 33%; background: #f87171; }
+    .pwd-strength .bar.medium { width: 66%; background: var(--amber); }
+    .pwd-strength .bar.strong { width: 100%; background: var(--green); }
+    .pwd-hint {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+
+    /* Password checklist */
+    .pwd-checklist {
+      margin-top: 8px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .check-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: color 0.3s;
+    }
+    .check-item.valid {
+      color: var(--green);
+    }
+
+    /* Demo section */
+    .demo-section {
+      text-align: center;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+    .demo-section p {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+    .demo-btns {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .demo-btns button {
+      width: auto;
+      padding: 5px 10px;
+      font-size: 0.72rem;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      box-shadow: none;
+    }
+    .demo-btns button:hover {
+      border-color: var(--border-glow);
+      color: var(--text-main);
+      background: rgba(255,255,255,0.06);
+      box-shadow: none;
+      transform: none;
+    }
+
+    /* Feature 1: Live Carbon Counter */
+    .live-counter-section {
+      background: #1A2E1A; /* dark forest green */
+      border-radius: var(--radius-md);
+      padding: 24px;
+      margin-top: 32px;
+      margin-bottom: 24px;
+      text-align: center;
+      position: relative;
+      border: 1px solid rgba(151,188,98,0.2);
+    }
+    .live-pulse-dot {
+      width: 12px;
+      height: 12px;
+      background-color: #97BC62; /* moss green */
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 8px;
+      animation: pulse 2s infinite;
+      vertical-align: middle;
+    }
+    @keyframes pulse {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(151, 188, 98, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(151, 188, 98, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(151, 188, 98, 0); }
+    }
+    .live-counter-text {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #97BC62;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .live-number {
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: #97BC62;
+      font-family: monospace;
+    }
+    .live-unit {
+      font-size: 1.2rem;
+      color: #F5F5F0; /* cream */
+      font-family: 'Outfit', sans-serif;
+    }
+    .live-subtext {
+      font-size: 0.9rem;
+      color: #F5F5F0;
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+  <div class="grid-bg"></div>
+
+  <div class="login-page">
+    <div class="login-container">
+      <!-- Logo & Brand -->
+      <div class="login-logo">
+        <span class="logo-emoji">🌿</span>
+        <h1>GreenMove</h1>
+        <p>Every trip verified. Every commute rewarded.</p>
+
+        <div class="features">
+          <span class="feature-tag">⛓ Blockchain-Verified</span>
+          <span class="feature-tag">📱 WhatsApp Logging</span>
+          <span class="feature-tag">🏆 Employer Rewards</span>
+        </div>
+      </div>
+
+      <!-- Auth Card -->
+      <div class="glass-card" style="animation-delay: 0.15s;">
+        <!-- Tabs: Login / Sign Up -->
+        <div class="auth-tabs">
+          <button class="auth-tab active" id="tab-login" onclick="switchTab('login')">Sign In</button>
+          <button class="auth-tab" id="tab-register" onclick="switchTab('register')">Create Account</button>
+        </div>
+
+        <div id="error-msg" class="error-msg"></div>
+        <div id="success-msg" class="success-msg"></div>
+
+        <!-- ==================== LOGIN FORM ==================== -->
+        <form id="login-form">
+          <div class="form-group">
+            <label for="login-email">Email Address</label>
+            <input type="email" id="login-email" placeholder="you@company.com" required>
+          </div>
+          <div class="form-group">
+            <label for="login-password">Password</label>
+            <input type="password" id="login-password" placeholder="••••••••" required>
+          </div>
+          <button type="submit" id="login-btn">Sign In →</button>
+        </form>
+
+        <!-- ==================== REGISTER FORM ==================== -->
+        <form id="register-form" style="display: none;">
+          <div class="form-group">
+            <label for="reg-name">Full Name</label>
+            <input type="text" id="reg-name" placeholder="Arjun Sharma" required>
+          </div>
+          <div class="form-group">
+            <label for="reg-email">Email Address</label>
+            <input type="email" id="reg-email" placeholder="you@company.com" required>
+          </div>
+          <div class="form-group">
+            <label for="reg-password">Password</label>
+            <input type="password" id="reg-password" placeholder="Min 8 chars, strong" required minlength="8">
+            <div class="pwd-strength"><div class="bar" id="pwd-bar"></div></div>
+            <div class="pwd-hint" id="pwd-hint"></div>
+            <div class="pwd-checklist" id="pwd-checklist">
+              <div class="check-item" id="chk-len">❌ At least 8 characters</div>
+              <div class="check-item" id="chk-up">❌ One uppercase letter</div>
+              <div class="check-item" id="chk-low">❌ One lowercase letter</div>
+              <div class="check-item" id="chk-num">❌ One number</div>
+              <div class="check-item" id="chk-spc">❌ One special character</div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="reg-confirm">Confirm Password</label>
+            <input type="password" id="reg-confirm" placeholder="Re-enter password" required>
+          </div>
+
+          <div class="form-group">
+            <label>I am a...</label>
+            <div class="role-selector">
+              <button type="button" class="role-option selected" data-role="commuter" onclick="selectRole('commuter')">
+                <span class="role-icon">👤</span>Commuter
+              </button>
+              <button type="button" class="role-option" data-role="employer" onclick="selectRole('employer')">
+                <span class="role-icon">🏢</span>Employer
+              </button>
+              <button type="button" class="role-option" data-role="city_planner" onclick="selectRole('city_planner')">
+                <span class="role-icon">📊</span>Planner
+              </button>
+            </div>
+          </div>
+
+          <!-- Commuter-specific fields -->
+          <div id="commuter-fields" class="conditional-field visible">
+            <div class="form-group">
+              <label for="reg-city">City</label>
+              <select id="reg-city" class="filter-select" style="width: 100%; padding: 10px 12px;">
+                <option value="Bengaluru">Bengaluru</option>
+                <option value="Mumbai">Mumbai</option>
+                <option value="Hyderabad">Hyderabad</option>
+                <option value="Delhi">Delhi</option>
+                <option value="Chennai">Chennai</option>
+                <option value="Pune">Pune</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="reg-mode">Preferred Commute Mode</label>
+              <select id="reg-mode" class="filter-select" style="width: 100%; padding: 10px 12px;">
+                <option value="bus">🚌 Bus</option>
+                <option value="metro">🚇 Metro</option>
+                <option value="cycle">🚲 Cycle</option>
+                <option value="walk">🚶 Walk</option>
+                <option value="carpool">🚗 Carpool</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Employer-specific fields -->
+          <div id="employer-fields" class="conditional-field">
+            <div class="form-group">
+              <label for="reg-org">Organization Name</label>
+              <input type="text" id="reg-org" placeholder="Acme Corp">
+            </div>
+            <div class="form-group">
+              <label for="reg-emp-city">City</label>
+              <select id="reg-emp-city" class="filter-select" style="width: 100%; padding: 10px 12px;">
+                <option value="Bengaluru">Bengaluru</option>
+                <option value="Mumbai">Mumbai</option>
+                <option value="Hyderabad">Hyderabad</option>
+                <option value="Delhi">Delhi</option>
+                <option value="Chennai">Chennai</option>
+                <option value="Pune">Pune</option>
+              </select>
+            </div>
+          </div>
+
+          <button type="submit" id="register-btn">Create Account →</button>
+        </form>
+
+        <!-- Demo Accounts -->
+        <div class="demo-section">
+          <p>Quick demo access (pwd: password123)</p>
+          <div class="demo-btns">
+            <button onclick="quickLogin('arjun@techcorp.com')">👤 Commuter</button>
+            <button onclick="quickLogin('hr@techcorp.com')">🏢 Employer</button>
+            <button onclick="quickLogin('planner@blr.gov.in')">📊 Planner</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Feature 1: Live Carbon Counter -->
+      <div class="live-counter-section">
+        <div class="live-counter-text">
+          <div class="live-pulse-dot"></div>
+          <span class="live-number" id="live-co2">0.0</span> 
+          <span class="live-unit">kg CO₂ avoided today across <span id="live-city">Bengaluru</span></span>
+        </div>
+        <div class="live-subtext">across <span id="live-commuters">0</span> active commuters today</div>
+      </div>
+
+      <!-- Hero Stats -->
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="val">276t</div>
+          <div class="lbl">CO₂ Avoided / Mo</div>
+        </div>
+        <div class="divider"></div>
+        <div class="hero-stat">
+          <div class="val">10K+</div>
+          <div class="lbl">Active Commuters</div>
+        </div>
+        <div class="divider"></div>
+        <div class="hero-stat">
+          <div class="val">100%</div>
+          <div class="lbl">Blockchain Verified</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ─── Redirect if already logged in ───
+    if (getToken()) {
+      const role = getRole();
+      if (role === 'commuter') window.location.href = 'commuter.html';
+      else if (role === 'employer') window.location.href = 'employer.html';
+      else if (role === 'city_planner') window.location.href = 'analytics.html';
+    }
+
+    // ─── State ───
+    let selectedRole = 'commuter';
+
+    // ─── Tab Switching ───
+    function switchTab(tab) {
+      const loginForm = document.getElementById('login-form');
+      const registerForm = document.getElementById('register-form');
+      const tabLogin = document.getElementById('tab-login');
+      const tabRegister = document.getElementById('tab-register');
+      const errEl = document.getElementById('error-msg');
+      const successEl = document.getElementById('success-msg');
+
+      errEl.style.display = 'none';
+      successEl.style.display = 'none';
+
+      if (tab === 'login') {
+        loginForm.style.display = 'block';
+        registerForm.style.display = 'none';
+        tabLogin.classList.add('active');
+        tabRegister.classList.remove('active');
+      } else {
+        loginForm.style.display = 'none';
+        registerForm.style.display = 'block';
+        tabLogin.classList.remove('active');
+        tabRegister.classList.add('active');
+      }
+    }
+
+    // ─── Role Selection ───
+    function selectRole(role) {
+      selectedRole = role;
+      document.querySelectorAll('.role-option').forEach(btn => {
+        btn.classList.toggle('selected', btn.dataset.role === role);
+      });
+
+      // Show/hide conditional fields
+      document.getElementById('commuter-fields').classList.toggle('visible', role === 'commuter');
+      document.getElementById('employer-fields').classList.toggle('visible', role === 'employer');
+    }
+
+    // ─── Password Strength ───
+    document.getElementById('reg-password').addEventListener('input', function() {
+      const pwd = this.value;
+      const bar = document.getElementById('pwd-bar');
+      const hint = document.getElementById('pwd-hint');
+
+      // Update checklist
+      const checks = {
+        len: pwd.length >= 8,
+        up: /[A-Z]/.test(pwd),
+        low: /[a-z]/.test(pwd),
+        num: /[0-9]/.test(pwd),
+        spc: /[\W_]/.test(pwd)
+      };
+
+      const updateCheck = (id, text, isValid) => {
+        const el = document.getElementById(id);
+        el.innerHTML = (isValid ? '✅ ' : '❌ ') + text;
+        el.className = 'check-item' + (isValid ? ' valid' : '');
+      };
+
+      updateCheck('chk-len', 'At least 8 characters', checks.len);
+      updateCheck('chk-up', 'One uppercase letter', checks.up);
+      updateCheck('chk-low', 'One lowercase letter', checks.low);
+      updateCheck('chk-num', 'One number', checks.num);
+      updateCheck('chk-spc', 'One special character', checks.spc);
+
+      if (pwd.length === 0) {
+        bar.className = 'bar';
+        hint.textContent = '';
+        return;
+      }
+
+      let score = Object.values(checks).filter(Boolean).length;
+
+      if (score <= 2) {
+        bar.className = 'bar weak';
+        hint.textContent = 'Weak — complete the checklist below';
+      } else if (score <= 4) {
+        bar.className = 'bar medium';
+        hint.textContent = 'Medium — getting there';
+      } else {
+        bar.className = 'bar strong';
+        hint.textContent = 'Strong password ✓';
+      }
+    });
+
+    // ─── Quick Demo Login ───
+    function quickLogin(email) {
+      switchTab('login');
+      document.getElementById('login-email').value = email;
+      document.getElementById('login-password').value = 'password123';
+      document.getElementById('login-form').dispatchEvent(new Event('submit'));
+    }
+
+    // ─── Login Handler ───
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('login-btn');
+      const errEl = document.getElementById('error-msg');
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+
+      btn.innerText = 'Signing in...';
+      btn.disabled = true;
+      errEl.style.display = 'none';
+
+      try {
+        const data = await apiCall('/auth/login', 'POST', { email, password });
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('role', data.role);
+        localStorage.setItem('user_name', data.name);
+
+        btn.innerText = '✅ Welcome, ' + data.name + '!';
+        setTimeout(() => {
+          if (data.role === 'commuter') window.location.href = 'commuter.html';
+          else if (data.role === 'employer') window.location.href = 'employer.html';
+          else if (data.role === 'city_planner') window.location.href = 'analytics.html';
+        }, 500);
+      } catch (err) {
+        errEl.innerText = err.message || 'Invalid credentials. Please try again.';
+        errEl.style.display = 'block';
+        btn.innerText = 'Sign In →';
+        btn.disabled = false;
+      }
+    });
+
+    // ─── Register Handler ───
+    document.getElementById('register-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('register-btn');
+      const errEl = document.getElementById('error-msg');
+      const successEl = document.getElementById('success-msg');
+
+      const name = document.getElementById('reg-name').value.trim();
+      const email = document.getElementById('reg-email').value.trim();
+      const password = document.getElementById('reg-password').value;
+      const confirm = document.getElementById('reg-confirm').value;
+
+      errEl.style.display = 'none';
+      successEl.style.display = 'none';
+
+      // Client-side validation
+      if (!name || !email || !password) {
+        errEl.innerText = 'All fields are required.';
+        errEl.style.display = 'block';
+        return;
+      }
+
+      if (password.length < 8) {
+        errEl.innerText = 'Password must be at least 8 characters.';
+        errEl.style.display = 'block';
+        return;
+      }
+
+      const strongRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+      if (!strongRegex.test(password)) {
+        errEl.innerText = 'Password must contain uppercase, lowercase, number, and special character.';
+        errEl.style.display = 'block';
+        return;
+      }
+
+      if (password !== confirm) {
+        errEl.innerText = 'Passwords do not match.';
+        errEl.style.display = 'block';
+        return;
+      }
+
+      // Build registration payload
+      const payload = { name, email, password, role: selectedRole };
+
+      if (selectedRole === 'commuter') {
+        payload.city = document.getElementById('reg-city').value;
+        payload.preferred_mode = document.getElementById('reg-mode').value;
+      } else if (selectedRole === 'employer') {
+        const orgName = document.getElementById('reg-org').value.trim();
+        payload.city = document.getElementById('reg-emp-city').value;
+        if (orgName) payload.name = orgName; // Use org name for employer
+      }
+
+      btn.innerText = 'Creating account...';
+      btn.disabled = true;
+
+      try {
+        await apiCall('/auth/register', 'POST', payload);
+
+        successEl.innerText = '🎉 Account created! Signing you in...';
+        successEl.style.display = 'block';
+        btn.innerText = '✅ Registered!';
+
+        // Auto-login after successful registration
+        setTimeout(async () => {
+          try {
+            const loginData = await apiCall('/auth/login', 'POST', { email, password });
+            localStorage.setItem('token', loginData.token);
+            localStorage.setItem('role', loginData.role);
+            localStorage.setItem('user_name', loginData.name);
+
+            if (loginData.role === 'commuter') window.location.href = 'commuter.html';
+            else if (loginData.role === 'employer') window.location.href = 'employer.html';
+            else if (loginData.role === 'city_planner') window.location.href = 'analytics.html';
+          } catch (loginErr) {
+            // If auto-login fails, switch to login tab
+            successEl.innerText = '✅ Account created! Please sign in.';
+            switchTab('login');
+            document.getElementById('login-email').value = email;
+            btn.innerText = 'Create Account →';
+            btn.disabled = false;
+          }
+        }, 800);
+      } catch (err) {
+        errEl.innerText = err.message || 'Registration failed. Please try again.';
+        errEl.style.display = 'block';
+        btn.innerText = 'Create Account →';
+        btn.disabled = false;
+      }
+    });
+
+    // ─── Feature 1: Live Carbon Counter ───
+    let currentCo2 = 0;
+    
+    function animateValue(obj, start, end, duration) {
+      let startTimestamp = null;
+      const step = (timestamp) => {
+        if (!startTimestamp) startTimestamp = timestamp;
+        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+        obj.innerHTML = (start + progress * (end - start)).toFixed(1);
+        if (progress < 1) {
+          window.requestAnimationFrame(step);
+        }
+      };
+      window.requestAnimationFrame(step);
+    }
+
+    async function fetchLiveStats() {
+      try {
+        const res = await fetch('/api/analytics/city/today');
+        const json = await res.json();
+        if (json.success) {
+          const { total_co2_kg_today, active_commuters_today, top_city } = json.data;
+          
+          const co2El = document.getElementById('live-co2');
+          if (total_co2_kg_today !== currentCo2) {
+            animateValue(co2El, currentCo2, total_co2_kg_today, 2000);
+            currentCo2 = total_co2_kg_today;
+          }
+          
+          document.getElementById('live-commuters').innerText = active_commuters_today;
+          document.getElementById('live-city').innerText = top_city || 'Bengaluru';
+        }
+      } catch (err) {
+        console.error('Failed to fetch live stats', err);
+      }
+    }
+
+    fetchLiveStats();
+    setInterval(fetchLiveStats, 10000);
+  </script>
+</body>
+</html>

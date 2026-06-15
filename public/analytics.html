@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>City Analytics — GreenMove</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* Feature 5 Tooltip */
+    #map-tooltip {
+      position: absolute;
+      background: rgba(26, 46, 26, 0.9);
+      color: #fff;
+      padding: 10px;
+      border-radius: var(--radius-sm);
+      font-size: 0.85rem;
+      pointer-events: none;
+      display: none;
+      z-index: 100;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+  </style>
+</head>
+<body>
+  <div class="grid-bg"></div>
+
+  <nav class="glass-nav">
+    <h2>📊 City Planner Portal</h2>
+    <div class="user-info">
+      <span id="user-greeting">Hello!</span>
+      <select id="city-selector" class="filter-select" style="margin-left: 8px;">
+        <option value="All">All Cities</option>
+        <option value="Bengaluru">🏙 Bengaluru</option>
+        <option value="Mumbai">🌆 Mumbai</option>
+        <option value="Hyderabad">🌇 Hyderabad</option>
+      </select>
+      <button onclick="logout()" class="secondary" style="width:auto; padding: 7px 16px; font-size: 0.85rem;">Sign Out</button>
+    </div>
+  </nav>
+
+  <main class="dashboard">
+    <!-- Live Counter Banner -->
+    <div class="live-banner">
+      <h3>⚡ Live CO₂ Avoided</h3>
+      <div class="counter-val" id="live-counter">0.000kg</div>
+      <small style="color: var(--text-muted); font-size: 0.75rem;">Polling live every 30s</small>
+    </div>
+
+    <!-- Stats Row -->
+    <section class="stats-row">
+      <div class="stat-card glass-card">
+        <h3>Citywide CO₂ Saved</h3>
+        <p class="stat-val" id="city-co2">—</p>
+        <small style="color: var(--text-muted); font-size: 0.78rem;">Total Kilograms</small>
+      </div>
+      <div class="stat-card glass-card">
+        <h3>Active Commuters</h3>
+        <p class="stat-val" id="city-active">—</p>
+        <small style="color: var(--text-muted); font-size: 0.78rem;">Using GreenMove</small>
+      </div>
+      <div class="stat-card glass-card">
+        <h3>Green Trips Logged</h3>
+        <p class="stat-val" id="city-trips">—</p>
+        <small style="color: var(--text-muted); font-size: 0.78rem;">Blockchain-Verified</small>
+      </div>
+    </section>
+
+    <div class="grid-2">
+      <!-- CO2 Trend Chart -->
+      <section class="glass-card">
+        <div class="section-header">
+          <h3>CO₂ Savings Trend</h3>
+          <div class="chart-toggle">
+            <button id="btn-daily" class="active" onclick="switchPeriod('daily', this)">Daily</button>
+            <button id="btn-monthly" onclick="switchPeriod('monthly', this)">Monthly</button>
+          </div>
+        </div>
+        <canvas id="co2Chart" style="max-height: 220px;"></canvas>
+        <details style="margin-top: 16px;">
+          <summary>View Raw Data</summary>
+          <table class="data-table mt-1" style="font-size: 0.8rem;">
+            <thead><tr><th>Period</th><th>CO₂ Saved (kg)</th></tr></thead>
+            <tbody id="trend-table-body"></tbody>
+          </table>
+        </details>
+      </section>
+
+      <!-- Modal Share Chart -->
+      <section class="glass-card">
+        <div class="section-header">
+          <h3>Modal Share</h3>
+          <span style="font-size: 0.75rem; color: var(--text-muted);">Current vs Previous Month</span>
+        </div>
+        <canvas id="modeChart" style="max-height: 220px;"></canvas>
+        <details style="margin-top: 16px;">
+          <summary>View Raw Data</summary>
+          <table class="data-table mt-1" style="font-size: 0.8rem;">
+            <thead><tr><th>Mode</th><th>This Month</th><th>Prev Month (est.)</th></tr></thead>
+            <tbody id="mode-table-body"></tbody>
+          </table>
+        </details>
+      </section>
+    </div>
+
+    <!-- Feature 5: City Zone Green Score Map -->
+    <section class="glass-card mt-2" style="position: relative;">
+      <div class="section-header">
+        <h3>Bengaluru City Zone Map</h3>
+        <span style="font-size: 0.75rem; color: var(--text-muted);">CO₂ Avoided by Zone</span>
+      </div>
+      <canvas id="zoneMap" width="800" height="400" style="width: 100%; max-width: 800px; height: auto; border-radius: var(--radius-sm); border: 1px solid rgba(0,0,0,0.1);"></canvas>
+      <div id="map-tooltip"></div>
+      
+      <!-- Legend -->
+      <div style="display: flex; gap: 15px; margin-top: 15px; justify-content: center; font-size: 0.8rem; flex-wrap: wrap;">
+        <div style="display:flex; align-items:center; gap:5px;"><div style="width:15px;height:15px;background:#d3d3d3;border-radius:3px;"></div>0-10kg</div>
+        <div style="display:flex; align-items:center; gap:5px;"><div style="width:15px;height:15px;background:#C8E6C9;border-radius:3px;"></div>10-50kg</div>
+        <div style="display:flex; align-items:center; gap:5px;"><div style="width:15px;height:15px;background:#66BB6A;border-radius:3px;"></div>50-100kg</div>
+        <div style="display:flex; align-items:center; gap:5px;"><div style="width:15px;height:15px;background:#2E7D32;border-radius:3px;"></div>100-200kg</div>
+        <div style="display:flex; align-items:center; gap:5px;"><div style="width:15px;height:15px;background:#1A2E1A;border-radius:3px;"></div>200kg+</div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    checkAuth(['city_planner']);
+
+    let co2Chart = null;
+    let modeChart = null;
+    let liveInterval = null;
+    let baseCo2 = 0;
+
+    const chartDefaults = {
+      plugins: { legend: { labels: { color: '#a0aec0', font: { family: 'Outfit' } } } },
+      scales: {
+        y: { ticks: { color: '#6e7890' }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        x: { ticks: { color: '#6e7890' }, grid: { color: 'rgba(255,255,255,0.04)' } }
+      },
+      animation: { duration: 800, easing: 'easeInOutQuart' }
+    };
+
+    async function loadCityStats() {
+      try {
+        const city = document.getElementById('city-selector').value;
+        const res = await apiCall('/analytics/city?city=' + city);
+
+        animateVal('city-co2', parseFloat(res.total_co2 || 0), 'kg');
+        animateVal('city-active', res.active_commuters || 0, '');
+        animateVal('city-trips', res.total_trips || 0, '');
+
+        baseCo2 = parseFloat(res.total_co2 || 0);
+        document.getElementById('live-counter').innerText = baseCo2.toFixed(3) + 'kg';
+
+        renderModeChart(res.modal_share || {});
+      } catch (e) { showToast('Error loading city stats'); }
+    }
+
+    async function loadTrends(period) {
+      try {
+        const res = await apiCall('/analytics/trends?period=' + period);
+        const labels = res.map(r => r.period_lbl);
+        const data = res.map(r => parseFloat(r.co2));
+
+        const ctx = document.getElementById('co2Chart').getContext('2d');
+        if (co2Chart) co2Chart.destroy();
+        co2Chart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [{
+              label: 'CO₂ Saved (kg)',
+              data,
+              borderColor: '#00e676',
+              backgroundColor: (ctx) => {
+                const g = ctx.chart.ctx.createLinearGradient(0, 0, 0, 250);
+                g.addColorStop(0, 'rgba(0,230,118,0.25)');
+                g.addColorStop(1, 'rgba(0,230,118,0)');
+                return g;
+              },
+              fill: true,
+              tension: 0.45,
+              pointRadius: 4,
+              pointBackgroundColor: '#00e676',
+              pointBorderColor: '#050709',
+              pointBorderWidth: 2,
+              borderWidth: 2.5
+            }]
+          },
+          options: chartDefaults
+        });
+
+        const tbody = document.getElementById('trend-table-body');
+        tbody.innerHTML = '';
+        res.forEach(r => {
+          tbody.innerHTML += '<tr><td>' + r.period_lbl + '</td><td>' + parseFloat(r.co2).toFixed(2) + '</td></tr>';
+        });
+      } catch (e) {}
+    }
+
+    function renderModeChart(modalShare) {
+      const labels = Object.keys(modalShare);
+      const curr = Object.values(modalShare);
+      const prev = curr.map(v => Math.floor(v * 0.72));
+      const modeColors = {
+        cycle: '#00e676', walk: '#fbbf24', bus: '#00d2ff',
+        metro: '#a78bfa', carpool: '#f87171'
+      };
+      const colors = labels.map(l => modeColors[l] || '#888');
+
+      const ctx = document.getElementById('modeChart').getContext('2d');
+      if (modeChart) modeChart.destroy();
+      modeChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels.map(l => l.toUpperCase()),
+          datasets: [
+            { label: 'This Month', data: curr, backgroundColor: colors.map(c => c + 'dd'), borderRadius: 6 },
+            { label: 'Prev Month', data: prev, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 6 }
+          ]
+        },
+        options: { ...chartDefaults, plugins: { ...chartDefaults.plugins } }
+      });
+
+      const tbody = document.getElementById('mode-table-body');
+      tbody.innerHTML = '';
+      labels.forEach((l, i) => {
+        tbody.innerHTML += '<tr>' +
+          '<td><span class="mode-pill mode-' + l + '">' + l.toUpperCase() + '</span></td>' +
+          '<td>' + curr[i] + '</td><td>' + prev[i] + '</td></tr>';
+      });
+    }
+
+    function animateVal(id, target, suffix) {
+      const el = document.getElementById(id);
+      const isFloat = !Number.isInteger(target);
+      const t0 = performance.now(), dur = 900;
+      function step(now) {
+        const p = Math.min((now-t0)/dur, 1);
+        const e = 1 - Math.pow(1-p, 3);
+        el.innerText = (isFloat ? (target*e).toFixed(1) : Math.floor(target*e)) + suffix;
+        if (p < 1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    }
+
+    function switchPeriod(period, btn) {
+      document.querySelectorAll('.chart-toggle button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      loadTrends(period);
+    }
+
+    function startLivePolling() {
+      if (liveInterval) clearInterval(liveInterval);
+      liveInterval = setInterval(() => {
+        // Simulate incremental CO2 value between API calls
+        baseCo2 += Math.random() * 0.05;
+        const el = document.getElementById('live-counter');
+        el.innerText = baseCo2.toFixed(3) + 'kg';
+        el.style.animation = 'none';
+        el.offsetHeight; // reflow
+        el.style.animation = 'numFlicker 0.4s ease';
+
+        // Every 30s also hit the API
+        loadCityStats();
+      }, 30000);
+    }
+
+    document.getElementById('city-selector').addEventListener('change', loadCityStats);
+
+    // Feature 5: Draw Zone Map
+    const ALL_ZONES = ['Whitefield', 'Electronic City', 'Koramangala', 'Indiranagar', 'HSR Layout', 'Sarjapur', 'Hebbal', 'Yeshwanthpur', 'JP Nagar', 'Bannerghatta', 'Yelahanka', 'Marathahalli'];
+    let zoneDataMap = {};
+    let zonesRects = [];
+
+    async function loadZoneMap() {
+      try {
+        const res = await apiCall('/analytics/zones');
+        const data = res || [];
+        data.forEach(d => { zoneDataMap[d.zone_name] = d; });
+        drawMap();
+      } catch (e) {
+        console.error('Error loading zone map', e);
+      }
+    }
+
+    function getColorForCO2(co2) {
+      if (co2 <= 10) return '#d3d3d3'; // light grey
+      if (co2 <= 50) return '#C8E6C9'; // light green
+      if (co2 <= 100) return '#66BB6A'; // medium green
+      if (co2 <= 200) return '#2E7D32'; // forest green
+      return '#1A2E1A'; // dark forest green
+    }
+
+    function drawMap() {
+      const canvas = document.getElementById('zoneMap');
+      const ctx = canvas.getContext('2d');
+      const cols = 4;
+      const rows = 3;
+      const w = canvas.width / cols;
+      const h = canvas.height / rows;
+      
+      zonesRects = [];
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.font = 'bold 16px Calibri, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      for (let i = 0; i < ALL_ZONES.length; i++) {
+        const zoneName = ALL_ZONES[i];
+        const data = zoneDataMap[zoneName] || { total_co2_kg: 0, total_trips: 0, top_mode: 'N/A' };
+        
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+        const x = col * w;
+        const y = row * h;
+        
+        zonesRects.push({ name: zoneName, data: data, x, y, w, h });
+
+        ctx.fillStyle = getColorForCO2(data.total_co2_kg);
+        ctx.fillRect(x, y, w, h);
+        
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, w, h);
+        
+        // Text shadow for readability
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowColor = 'rgba(0,0,0,0.5)';
+        ctx.shadowBlur = 4;
+        
+        ctx.font = 'bold 16px Calibri, sans-serif';
+        ctx.fillText(zoneName, x + w / 2, y + h / 2 - 10);
+        
+        ctx.font = 'normal 14px Calibri, sans-serif';
+        ctx.fillText(data.total_co2_kg + 'kg', x + w / 2, y + h / 2 + 15);
+        
+        // Reset shadow
+        ctx.shadowBlur = 0;
+      }
+    }
+
+    // Tooltip logic
+    const canvas = document.getElementById('zoneMap');
+    const tooltip = document.getElementById('map-tooltip');
+
+    canvas.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      // Adjust for responsive canvas scaling
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const x = (e.clientX - rect.left) * scaleX;
+      const y = (e.clientY - rect.top) * scaleY;
+      
+      let hoveredZone = null;
+      for (const z of zonesRects) {
+        if (x >= z.x && x <= z.x + z.w && y >= z.y && y <= z.y + z.h) {
+          hoveredZone = z;
+          break;
+        }
+      }
+      
+      if (hoveredZone) {
+        const data = hoveredZone.data;
+        tooltip.innerHTML = \`
+          <div style="font-weight:bold;margin-bottom:5px;">\${hoveredZone.name}</div>
+          <div>Trips: \${data.total_trips}</div>
+          <div>CO₂ Avoided: \${data.total_co2_kg} kg</div>
+          <div>Top Mode: \${data.top_mode}</div>
+        \`;
+        tooltip.style.display = 'block';
+        tooltip.style.left = (e.pageX + 15) + 'px';
+        tooltip.style.top = (e.pageY + 15) + 'px';
+      } else {
+        tooltip.style.display = 'none';
+      }
+    });
+
+    canvas.addEventListener('mouseout', () => {
+      tooltip.style.display = 'none';
+    });
+
+    loadCityStats();
+    loadTrends('daily');
+    startLivePolling();
+    loadZoneMap();
+  </script>
+</body>
+</html>

@@ -1,0 +1,220 @@
+<!-- GreenMove — verify.html — Feature 2: Blockchain Explorer -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blockchain Explorer — GreenMove</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/app.js"></script>
+  <style>
+    body { background-color: #F5F5F0; } /* Cream background */
+    .verify-container {
+      max-width: 600px;
+      margin: 80px auto;
+      padding: 20px;
+      text-align: center;
+    }
+    .verify-input-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 30px;
+    }
+    .verify-input-group input {
+      flex: 1;
+      padding: 12px;
+      border: 1px solid #CCC;
+      border-radius: var(--radius-sm);
+      font-family: monospace;
+      font-size: 1rem;
+    }
+    .verify-result {
+      display: none;
+      background: white;
+      border: 1px solid rgba(151,188,98,0.5);
+      border-radius: var(--radius-md);
+      padding: 30px;
+      text-align: left;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    .verify-result.error {
+      border-color: #e57373;
+      background: #ffebee;
+      color: #b71c1c;
+      text-align: center;
+    }
+    .verified-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #1A2E1A; /* forest green */
+      background: #97BC62; /* moss green */
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: 700;
+      margin-bottom: 20px;
+    }
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .detail-row:last-child {
+      border-bottom: none;
+    }
+    .detail-label {
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    .detail-value {
+      font-weight: 700;
+      color: #1A2E1A;
+    }
+    .hash-display {
+      font-family: monospace;
+      word-break: break-all;
+      color: #666;
+      font-size: 0.9rem;
+      background: #f9f9f9;
+      padding: 8px;
+      border-radius: 4px;
+      margin-top: 5px;
+    }
+    .share-btn {
+      margin-top: 20px;
+      width: 100%;
+      background: #1A2E1A;
+      color: white;
+      padding: 12px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      border: none;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <nav class="glass-nav" style="background: white; border-bottom: 1px solid #ddd;">
+    <h2 style="color: #1A2E1A;">🌿 GreenMove Explorer</h2>
+    <div class="user-info">
+      <a href="index.html" style="color: #1A2E1A; text-decoration: none; font-weight: 600;">← Back Home</a>
+    </div>
+  </nav>
+
+  <div class="verify-container">
+    <h1 style="color: #1A2E1A; margin-bottom: 10px;">Verify a Trip</h1>
+    <p style="color: #666; margin-bottom: 30px;">Enter a transaction hash to verify its cryptographic proof on the GreenMove ledger.</p>
+
+    <form id="verify-form" class="verify-input-group">
+      <input type="text" id="hash-input" placeholder="Paste a trip tx hash to verify" required>
+      <button type="submit" style="padding: 12px 24px;">Verify</button>
+    </form>
+
+    <div id="result-card" class="verify-result"></div>
+  </div>
+
+  <script>
+    const modeEmojis = { walk: '🚶', cycle: '🚲', bus: '🚌', metro: '🚇', carpool: '🚗' };
+
+    document.getElementById('verify-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const hash = document.getElementById('hash-input').value.trim();
+      verifyHash(hash);
+    });
+
+    async function verifyHash(hash) {
+      if (!hash) return;
+      const card = document.getElementById('result-card');
+      card.style.display = 'block';
+      card.className = 'verify-result';
+      card.innerHTML = '<div style="text-align:center;">Verifying on ledger...</div>';
+
+      try {
+        const res = await fetch('/api/trips/verify/' + encodeURIComponent(hash));
+        const json = await res.json();
+
+        if (!json.success) {
+          card.className = 'verify-result error';
+          card.innerHTML = '<h3>❌ Hash not found in ledger</h3><p>This transaction may be invalid or pending.</p>';
+          return;
+        }
+
+        const t = json.data;
+        const date = new Date(t.created_at).toLocaleString('en-IN');
+        const modeLabel = modeEmojis[t.mode] + ' ' + t.mode.toUpperCase();
+        const shortComId = t.commuter_id.substring(0, 4) + '...';
+        
+        // Feature 7 integration
+        const photoProofHtml = t.has_photo_proof ? '<div style="color:#97BC62; font-weight:bold; margin-top:10px;">📸 Visual proof available</div>' : '';
+
+        card.innerHTML = `
+          <div class="verified-badge">✅ Verified on GreenMove Ledger</div>
+          
+          <div class="detail-row">
+            <span class="detail-label">Commuter ID (Anonymised)</span>
+            <span class="detail-value">${shortComId}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Mode</span>
+            <span class="detail-value">${modeLabel}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Distance</span>
+            <span class="detail-value">${t.distance_km} km</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">CO₂ Avoided</span>
+            <span class="detail-value" style="color: #97BC62;">${t.co2_saved_kg} kg</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Equivalents</span>
+            <span class="detail-value" style="font-size: 0.85rem; text-align: right;">
+              🌳 ${t.equivalents.trees_planted} trees<br>
+              📱 ${t.equivalents.phone_charges} charges
+            </span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Timestamp</span>
+            <span class="detail-value" style="font-size: 0.9rem;">${date}</span>
+          </div>
+          
+          <div style="margin-top: 20px;">
+            <span class="detail-label">Full Transaction Hash</span>
+            <div class="hash-display">${t.tx_hash}</div>
+          </div>
+          
+          ${photoProofHtml}
+
+          <button class="share-btn" onclick="copyShareLink('${t.tx_hash}')">🔗 Share Verification</button>
+        `;
+
+        // Update URL
+        const newUrl = window.location.pathname + '?hash=' + t.tx_hash;
+        window.history.replaceState({}, '', newUrl);
+
+      } catch (err) {
+        card.className = 'verify-result error';
+        card.innerHTML = '<h3>❌ Error verifying hash</h3>';
+      }
+    }
+
+    function copyShareLink(hash) {
+      const url = window.location.origin + window.location.pathname + '?hash=' + hash;
+      navigator.clipboard.writeText(url).then(() => {
+        alert('Link copied to clipboard!');
+      });
+    }
+
+    // Auto-verify on load
+    window.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const hash = urlParams.get('hash');
+      if (hash) {
+        document.getElementById('hash-input').value = hash;
+        verifyHash(hash);
+      }
+    });
+  </script>
+</body>
+</html>

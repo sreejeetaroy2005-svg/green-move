@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WhatsApp Bot Demo — GreenMove</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/app.js"></script>
+  <style>
+    .chat-container {
+      max-width: 480px;
+      margin: 0 auto;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      animation: slideUp 0.5s ease forwards;
+    }
+    .chat-header {
+      display: flex; align-items: center; gap: 12px;
+      padding: 16px 20px;
+      background: rgba(0,230,118,0.08);
+      border-bottom: 1px solid var(--border);
+    }
+    .chat-header .avatar {
+      width: 42px; height: 42px; border-radius: 50%;
+      background: var(--green-gradient);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem; font-weight: 700; color: #040805;
+    }
+    .chat-header .info h4 { font-size: 1rem; font-weight: 600; color: var(--text-main); }
+    .chat-header .info small { font-size: 0.75rem; color: var(--green); }
+    .chat-body {
+      padding: 20px;
+      min-height: 350px;
+      max-height: 450px;
+      overflow-y: auto;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .msg {
+      max-width: 85%;
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 0.88rem;
+      line-height: 1.5;
+      animation: slideUp 0.3s ease forwards;
+      position: relative;
+    }
+    .msg-bot {
+      align-self: flex-start;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      border-bottom-left-radius: 4px;
+    }
+    .msg-user {
+      align-self: flex-end;
+      background: rgba(0,230,118,0.15);
+      border: 1px solid rgba(0,230,118,0.25);
+      color: var(--text-main);
+      border-bottom-right-radius: 4px;
+    }
+    .msg-time {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+    .chat-input {
+      display: flex; gap: 8px;
+      padding: 14px 16px;
+      border-top: 1px solid var(--border);
+      background: rgba(0,0,0,0.2);
+    }
+    .chat-input input {
+      flex: 1;
+      padding: 10px 14px;
+      border-radius: 999px;
+    }
+    .chat-input button {
+      width: auto;
+      padding: 10px 20px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+    }
+    .quick-msgs {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      padding: 0 16px 14px;
+      background: rgba(0,0,0,0.2);
+    }
+    .quick-msg {
+      padding: 5px 12px;
+      background: rgba(0,230,118,0.08);
+      border: 1px solid rgba(0,230,118,0.15);
+      border-radius: 999px;
+      font-size: 0.75rem;
+      color: var(--green);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .quick-msg:hover {
+      background: rgba(0,230,118,0.15);
+      transform: scale(1.05);
+    }
+    .demo-info {
+      max-width: 480px;
+      margin: 20px auto 0;
+      text-align: center;
+    }
+    .demo-info h4 { color: var(--text-main); margin-bottom: 6px; font-size: 0.9rem; }
+    .demo-info p { color: var(--text-muted); font-size: 0.8rem; line-height: 1.6; }
+    .feature-list {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+      max-width: 480px; margin: 16px auto 0;
+    }
+    .feature-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 0.8rem; color: var(--text-soft);
+    }
+    .feature-item span:first-child { font-size: 1.1rem; }
+  </style>
+</head>
+<body>
+  <div class="grid-bg"></div>
+
+  <nav class="glass-nav">
+    <h2>💬 WhatsApp Bot Demo</h2>
+    <div class="user-info">
+      <a href="index.html" style="color: var(--green); text-decoration: none; font-size: 0.85rem;">← Back to Login</a>
+    </div>
+  </nav>
+
+  <main class="dashboard">
+    <div class="chat-container">
+      <div class="chat-header">
+        <div class="avatar">🌿</div>
+        <div class="info">
+          <h4>GreenMove Bot</h4>
+          <small>● Online — Verified Business</small>
+        </div>
+      </div>
+
+      <div class="chat-body" id="chat-body">
+        <div class="msg msg-bot">
+          👋 Hi! I'm the <strong>GreenMove Bot</strong>.<br><br>
+          Tell me about your green commute and I'll log it instantly!<br><br>
+          Try saying:<br>
+          • "I cycled 8km today"<br>
+          • "took the bus for 12km"<br>
+          • "walked 3km to office"
+          <div class="msg-time">Just now</div>
+        </div>
+      </div>
+
+      <div class="quick-msgs">
+        <span class="quick-msg" onclick="sendQuick('I cycled 5km today')">🚴 Cycled 5km</span>
+        <span class="quick-msg" onclick="sendQuick('took the bus for 12km')">🚌 Bus 12km</span>
+        <span class="quick-msg" onclick="sendQuick('walked 3km to office')">🚶 Walked 3km</span>
+        <span class="quick-msg" onclick="sendQuick('metro 15km')">🚇 Metro 15km</span>
+        <span class="quick-msg" onclick="sendQuick('carpooled 10km')">🚗 Carpool 10km</span>
+      </div>
+
+      <div class="chat-input">
+        <input type="text" id="chat-msg" placeholder="Type your commute..." autocomplete="off">
+        <button onclick="sendMessage()" id="send-btn">Send</button>
+      </div>
+    </div>
+
+    <div class="demo-info">
+      <h4>How It Works</h4>
+      <p>Commuters simply text the GreenMove WhatsApp number with their trip details in natural language. No app download needed!</p>
+    </div>
+
+    <div class="feature-list">
+      <div class="feature-item"><span>🗣️</span> Natural Language Processing</div>
+      <div class="feature-item"><span>⛓</span> Blockchain TX Hash</div>
+      <div class="feature-item"><span>📊</span> Auto Points Calculation</div>
+      <div class="feature-item"><span>🏆</span> Badge Progression</div>
+    </div>
+  </main>
+
+  <script>
+    var demoPhone = '+919876543210';
+
+    function getTime() {
+      return new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function addMsg(text, isUser) {
+      var body = document.getElementById('chat-body');
+      var div = document.createElement('div');
+      div.className = 'msg ' + (isUser ? 'msg-user' : 'msg-bot');
+      div.innerHTML = text + '<div class="msg-time">' + getTime() + '</div>';
+      body.appendChild(div);
+      body.scrollTop = body.scrollHeight;
+    }
+
+    function addTyping() {
+      var body = document.getElementById('chat-body');
+      var div = document.createElement('div');
+      div.className = 'msg msg-bot';
+      div.id = 'typing-indicator';
+      div.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
+      body.appendChild(div);
+      body.scrollTop = body.scrollHeight;
+    }
+
+    function removeTyping() {
+      var el = document.getElementById('typing-indicator');
+      if (el) el.remove();
+    }
+
+    function sendQuick(text) {
+      document.getElementById('chat-msg').value = text;
+      sendMessage();
+    }
+
+    async function sendMessage() {
+      var input = document.getElementById('chat-msg');
+      var text = input.value.trim();
+      if (!text) return;
+
+      addMsg(text, true);
+      input.value = '';
+
+      // Show typing
+      addTyping();
+
+      try {
+        var res = await fetch('/api/whatsapp/webhook', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            From: 'whatsapp:' + demoPhone,
+            Body: text
+          })
+        });
+        var xml = await res.text();
+        removeTyping();
+
+        // Parse the TwiML response to extract the message body
+        var match = xml.match(/<Body>([\s\S]*?)<\/Body>/);
+        if (match && match[1]) {
+          var botText = match[1]
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/\n/g, '<br>');
+          addMsg(botText, false);
+        } else {
+          addMsg('✅ Trip processed!', false);
+        }
+      } catch (e) {
+        removeTyping();
+        addMsg('⚠️ Error: Could not reach the bot. Is the server running?', false);
+      }
+    }
+
+    // Enter key handler
+    document.getElementById('chat-msg').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') sendMessage();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Employer Portal — GreenMove</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/app.js"></script>
+</head>
+<body>
+  <div class="grid-bg"></div>
+
+  <nav class="glass-nav">
+    <h2>🏢 Employer Portal</h2>
+    <div class="user-info">
+      <span id="user-greeting">Hello!</span>
+      <select id="date-filter" class="filter-select" style="margin-left: 8px;">
+        <option value="all">All Time</option>
+        <option value="this_month">This Month</option>
+        <option value="this_week">This Week</option>
+      </select>
+      <!-- Feature 4: Employer Certificate -->
+      <button onclick="downloadCertificate()" class="secondary" style="width:auto; padding: 7px 16px; font-size: 0.85rem; background: #97BC62; color: #1A2E1A; border: none; margin-left: 8px; font-weight: 600;">Download Certificate 📜</button>
+      <button onclick="logout()" class="secondary" style="width:auto; padding: 7px 16px; font-size: 0.85rem; margin-left: 8px;">Sign Out</button>
+    </div>
+  </nav>
+
+  <main class="dashboard">
+    <section class="stats-row">
+      <div class="stat-card glass-card">
+        <h3>CO₂ Saved by Team</h3>
+        <p class="stat-val" id="emp-co2">—</p>
+        <div style="margin-top: 12px;">
+          <div class="target-label">
+            <span>vs. 500kg Monthly Target</span>
+            <span id="target-pct" style="color: var(--green);">0%</span>
+          </div>
+          <div class="progress-bar-track">
+            <div class="progress-bar-fill" id="target-bar" style="width: 0%;"></div>
+          </div>
+        </div>
+      </div>
+      <div class="stat-card glass-card">
+        <h3>Active Commuters</h3>
+        <p class="stat-val" id="emp-active">—</p>
+        <small style="color: var(--text-muted); font-size: 0.78rem;">Using GreenMove</small>
+      </div>
+      <div class="stat-card glass-card">
+        <h3>Verified Trips</h3>
+        <p class="stat-val" id="emp-trips">—</p>
+        <small style="color: var(--text-muted); font-size: 0.78rem;">Blockchain-Logged</small>
+      </div>
+    </section>
+
+    <div class="grid-2">
+      <!-- Team Leaderboard -->
+      <section class="glass-card">
+        <div class="section-header">
+          <h3>Team Leaderboard</h3>
+          <button onclick="exportCSV()" class="secondary" style="width:auto; padding:6px 14px; font-size:0.8rem;">⬇ CSV</button>
+        </div>
+        <table class="data-table" id="leaderboard-table">
+          <thead>
+            <tr>
+              <th onclick="sortTable(0)" style="cursor:pointer; user-select:none;">Employee ↕</th>
+              <th onclick="sortTable(1)" style="cursor:pointer; user-select:none;">CO₂ Saved ↕</th>
+              <th>Badge</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="emp-leaderboard-body">
+            <tr><td colspan="4"><div class="shimmer-loading" style="height:20px;"></div></td></tr>
+            <tr><td colspan="4"><div class="shimmer-loading" style="height:20px;"></div></td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Verified Trip Audit -->
+      <section class="glass-card">
+        <div class="section-header">
+          <h3>Verified Trip Audit</h3>
+          <span style="font-size: 0.75rem; color: var(--green);">⛓ On-Chain</span>
+        </div>
+        <div style="overflow-x: auto; max-height: 320px; overflow-y: auto;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Employee</th>
+                <th>Mode</th>
+                <th>Dist</th>
+                <th>Tx Hash</th>
+              </tr>
+            </thead>
+            <tbody id="emp-trips-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    checkAuth(['employer']);
+    let currentTripsData = [];
+
+    async function loadEmployerData() {
+      try {
+        const timeFilter = document.getElementById('date-filter').value;
+        // Decode employer id from JWT
+        const payload = JSON.parse(atob(getToken().split('.')[1]));
+        const empId = payload.id;
+
+        const res = await apiCall('/analytics/employer/' + empId + '?timeRange=' + timeFilter);
+
+        // Animate stat values
+        animateVal('emp-co2', parseFloat(res.total_co2 || 0), 'kg');
+        animateVal('emp-active', res.active_commuters || 0, '');
+        animateVal('emp-trips', res.total_trips || 0, '');
+
+        const target = 500;
+        const pct = Math.min(100, Math.floor(((res.total_co2 || 0) / target) * 100));
+        document.getElementById('target-pct').innerText = pct + '%';
+        setTimeout(() => { document.getElementById('target-bar').style.width = pct + '%'; }, 300);
+
+        const lbBody = document.getElementById('emp-leaderboard-body');
+        lbBody.innerHTML = '';
+        (res.team_leaderboard || []).forEach((l, i) => {
+          const medals = ['🥇','🥈','🥉'];
+          lbBody.innerHTML += '<tr>' +
+            '<td style="font-weight:600;">' + (medals[i] || (i+1) + '.') + ' ' + l.name + '</td>' +
+            '<td style="color:var(--green);font-weight:600;">' + (l.total_co2 || 0) + 'kg</td>' +
+            '<td>' + l.badge + '</td>' +
+            '<td><button class="kudos-btn" onclick="sendKudos(\'' + l.name + '\')">👏 Kudos</button></td>' +
+            '</tr>';
+        });
+
+        const tripsBody = document.getElementById('emp-trips-body');
+        tripsBody.innerHTML = '';
+        currentTripsData = res.verified_trips || [];
+        currentTripsData.slice(0, 20).forEach(t => {
+          tripsBody.innerHTML += '<tr>' +
+            '<td>' + t.name + '</td>' +
+            '<td><span class="mode-pill mode-' + t.mode + '">' + t.mode.toUpperCase() + '</span></td>' +
+            '<td>' + t.distance_km + 'km</td>' +
+            '<td><span class="hash" title="' + t.tx_hash + '">' + t.tx_hash.substring(0,8) + '...</span></td>' +
+            '</tr>';
+        });
+      } catch (e) { showToast('Error loading employer data'); }
+    }
+
+    function animateVal(id, target, suffix) {
+      const el = document.getElementById(id);
+      const isFloat = !Number.isInteger(target);
+      const start = 0, dur = 900;
+      const t0 = performance.now();
+      function step(now) {
+        const p = Math.min((now - t0) / dur, 1);
+        const e = 1 - Math.pow(1 - p, 3);
+        el.innerText = (isFloat ? (start + (target-start)*e).toFixed(1) : Math.floor((target-start)*e)) + suffix;
+        if (p < 1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    }
+
+    function sendKudos(name) {
+      showToast('👏 WhatsApp kudos sent to ' + name + '!');
+    }
+
+    function exportCSV() {
+      if (!currentTripsData.length) return showToast('No data to export');
+      const headers = ['Employee','Mode','Distance (km)','CO2 Saved (kg)','Tx Hash','Date'];
+      const rows = currentTripsData.map(t => ['"' + t.name + '"', t.mode, t.distance_km, t.co2_saved_kg, t.tx_hash, new Date(t.created_at).toISOString()]);
+      const csv = 'data:text/csv;charset=utf-8,' + headers.join(',') + '\n' + rows.map(r => r.join(',')).join('\n');
+      const a = document.createElement('a');
+      a.href = encodeURI(csv);
+      a.download = 'greenmove_audit.csv';
+      a.click();
+    }
+
+    // Feature 4: Download Certificate
+    function downloadCertificate() {
+      const payload = JSON.parse(atob(getToken().split('.')[1]));
+      const empId = payload.id;
+      window.open('/api/employer/certificate/' + empId, '_blank');
+    }
+
+    function sortTable(col) {
+      const table = document.getElementById('leaderboard-table');
+      const rows = Array.from(table.tBodies[0].rows);
+      let asc = table.dataset.sortAsc !== 'true';
+      table.dataset.sortAsc = asc;
+      rows.sort((a, b) => {
+        const aVal = a.cells[col].innerText.replace(/[^\d.]/g,'');
+        const bVal = b.cells[col].innerText.replace(/[^\d.]/g,'');
+        return asc ? (parseFloat(aVal)||aVal) > (parseFloat(bVal)||bVal) ? 1 : -1
+                   : (parseFloat(aVal)||aVal) < (parseFloat(bVal)||bVal) ? 1 : -1;
+      });
+      rows.forEach(r => table.tBodies[0].appendChild(r));
+    }
+
+    document.getElementById('date-filter').addEventListener('change', loadEmployerData);
+    loadEmployerData();
+  </script>
+</body>
+</html>

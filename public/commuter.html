@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Commuter Dashboard — GreenMove</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="grid-bg"></div>
+
+  <nav class="glass-nav">
+    <h2>🌿 GreenMove</h2>
+    <div class="user-info">
+      <span id="user-greeting">Hello!</span>
+      <button onclick="logout()" class="secondary" style="width:auto; padding: 7px 16px; font-size: 0.85rem;">Sign Out</button>
+    </div>
+  </nav>
+
+  <main class="dashboard">
+    <!-- Stats Row -->
+    <section class="stats-row" style="animation: slideUp 0.5s ease forwards;">
+      <div class="stat-card glass-card">
+        <h3>Total Points</h3>
+        <p class="stat-val" id="total-points">—</p>
+        <small style="color: var(--text-muted); font-size: 0.78rem;">Green Points Earned</small>
+      </div>
+      <div class="stat-card glass-card">
+        <h3>CO₂ Saved</h3>
+        <p class="stat-val" id="total-co2">—</p>
+        <small style="color: var(--text-muted); font-size: 0.78rem;">Kilograms Avoided</small>
+        <div id="co2-mini-equivalents" style="margin-top: 8px; font-size: 0.75rem; color: var(--green); display: none;"></div>
+      </div>
+      <div class="stat-card glass-card">
+        <h3>🔥 Streak</h3>
+        <p class="stat-val" id="streak">—</p>
+        <small style="color: var(--text-muted); font-size: 0.78rem;">Consecutive Days</small>
+        <div id="streak-shields-container" style="display:none; margin-top: 8px; font-size: 0.85rem; color: #66BB6A; font-weight: 600;"></div>
+      </div>
+      <div class="stat-card glass-card glow">
+        <h3>Badge</h3>
+        <p class="stat-val" id="badge" style="font-size: 1.5rem;">—</p>
+        <div style="margin-top: 10px;">
+          <div class="target-label">
+            <span>Progress to <span id="next-badge-name" style="color: var(--green);">next</span></span>
+            <span id="next-badge-co2" style="color: var(--green);">—</span>
+          </div>
+          <div class="progress-bar-track">
+            <div class="progress-bar-fill" id="badge-progress-bar" style="width: 0%;"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="grid-2">
+      <!-- Log Trip Form -->
+      <section class="glass-card">
+        <div class="section-header">
+          <h3>Log a Green Trip</h3>
+          <span style="font-size: 1.2rem;">🚲</span>
+        </div>
+        <form id="log-trip-form">
+          <div class="form-group">
+            <label>Mode of Transport</label>
+            <select id="mode">
+              <option value="cycle">🚴 Cycle</option>
+              <option value="walk">🚶 Walk</option>
+              <option value="bus">🚌 City Bus</option>
+              <option value="metro">🚇 Metro</option>
+              <option value="carpool">🚗 Carpool</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Distance (km)</label>
+            <input type="number" id="distance" placeholder="e.g. 8.5" step="0.1" min="0.1" required>
+            <div id="co2-preview" style="display:none;" class="co2-preview-badge">
+              <span>🌿</span>
+              <span id="co2-preview-val"></span>
+            </div>
+          </div>
+          <button type="submit" id="log-btn">Log Trip 🌿</button>
+        </form>
+      </section>
+
+      <!-- Leaderboard -->
+      <section class="glass-card">
+        <div class="section-header">
+          <h3>City Leaderboard</h3>
+          <small style="color: var(--text-muted); font-size: 0.75rem;">Auto-refreshes every 60s</small>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Commuter</th>
+              <th>CO₂ Saved</th>
+              <th>Badge</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboard-body">
+            <!-- Shimmer placeholders -->
+            <tr><td colspan="4"><div class="shimmer-loading" style="height:20px;"></div></td></tr>
+            <tr><td colspan="4"><div class="shimmer-loading" style="height:20px;"></div></td></tr>
+            <tr><td colspan="4"><div class="shimmer-loading" style="height:20px;"></div></td></tr>
+          </tbody>
+        </table>
+      </section>
+    </div>
+
+    <!-- Trip History -->
+    <section class="glass-card mt-2">
+      <div class="section-header">
+        <h3>My Trip History</h3>
+        <select id="mode-filter" class="filter-select">
+          <option value="all">All Modes</option>
+          <option value="cycle">Cycle</option>
+          <option value="walk">Walk</option>
+          <option value="bus">Bus</option>
+          <option value="metro">Metro</option>
+          <option value="carpool">Carpool</option>
+        </select>
+      </div>
+
+      <div class="table-wrapper" style="overflow-x: auto;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Mode</th>
+              <th>Distance</th>
+              <th>CO₂ Saved</th>
+              <th>Points</th>
+              <th>Blockchain Hash</th>
+            </tr>
+          </thead>
+          <tbody id="trips-body"></tbody>
+        </table>
+      </div>
+
+      <!-- Empty State -->
+      <div id="empty-state" class="empty-state" style="display: none;">
+        <span class="empty-icon">🌱</span>
+        <p>No trips logged yet.<br>Start your green journey today!</p>
+      </div>
+
+      <!-- Pagination -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
+        <button id="prev-page" class="secondary" disabled>← Previous</button>
+        <span id="page-info" style="color: var(--text-muted); font-size: 0.85rem;">Page 1</span>
+        <button id="next-page" class="secondary">Next →</button>
+      </div>
+    </section>
+
+    <!-- Environmental Impact Equivalents -->
+    <section class="glass-card mt-2">
+      <div class="section-header">
+        <h3>Your Environmental Impact</h3>
+        <span style="font-size: 0.75rem; color: var(--text-muted);">Based on total CO₂ saved</span>
+      </div>
+      <div class="impact-grid" id="impact-grid">
+        <div class="impact-item">
+          <span class="impact-icon">🌳</span>
+          <span class="impact-val" id="impact-trees">0</span>
+          <span class="impact-lbl">Trees Planted<br>(equivalent)</span>
+        </div>
+        <div class="impact-item">
+          <span class="impact-icon">♻️</span>
+          <span class="impact-val" id="impact-bottles">0</span>
+          <span class="impact-lbl">Plastic Bottles<br>Recycled</span>
+        </div>
+        <div class="impact-item">
+          <span class="impact-icon">🚗</span>
+          <span class="impact-val" id="impact-km">0</span>
+          <span class="impact-lbl">Car km<br>Avoided</span>
+        </div>
+        <div class="impact-item">
+          <span class="impact-icon">📱</span>
+          <span class="impact-val" id="impact-charges">0</span>
+          <span class="impact-lbl">Phone Charges<br>Worth</span>
+        </div>
+        <div class="impact-item">
+          <span class="impact-icon">💡</span>
+          <span class="impact-val" id="impact-led">0</span>
+          <span class="impact-lbl">LED Bulb<br>Hours</span>
+        </div>
+      </div>
+    </section>
+
+    <div class="grid-2 mt-2">
+      <!-- Rewards Marketplace -->
+      <section class="glass-card">
+        <div class="section-header">
+          <h3>🎁 Rewards Marketplace</h3>
+          <span style="font-size: 0.85rem; color: var(--amber); font-weight: 600;" id="pts-balance">—pts</span>
+        </div>
+        <div class="rewards-grid" id="rewards-grid"></div>
+      </section>
+
+      <!-- Personal CO2 Trend Chart -->
+      <section class="glass-card">
+        <div class="section-header">
+          <h3>📈 My CO₂ Trend</h3>
+          <span style="font-size: 0.75rem; color: var(--text-muted);">Last 7 trips</span>
+        </div>
+        <canvas id="personalChart" style="max-height: 220px;"></canvas>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    checkAuth(['commuter']);
+
+    let currentPage = 1;
+    const PER_PAGE = 10;
+
+    // ---- Load Stats ----
+    async function loadStats() {
+      try {
+        const stats = await apiCall('/rewards/my');
+        animateValue('total-points', stats.current_points);
+        animateValue('total-co2', stats.total_co2, 'kg');
+        document.getElementById('streak').innerText = stats.streak + ' days';
+        
+        if (stats.streak_shields && stats.streak_shields > 0) {
+          const sc = document.getElementById('streak-shields-container');
+          sc.innerText = '🛡️ ' + stats.streak_shields + ' Shield' + (stats.streak_shields > 1 ? 's' : '');
+          sc.style.display = 'block';
+        } else {
+          const sc = document.getElementById('streak-shields-container');
+          if (sc) sc.style.display = 'none';
+        }
+        
+        document.getElementById('badge').innerText = stats.badge;
+
+        if (stats.next_badge) {
+          document.getElementById('next-badge-name').innerText = stats.next_badge.next_badge;
+          document.getElementById('next-badge-co2').innerText = stats.next_badge.co2_needed + 'kg';
+          setTimeout(() => {
+            document.getElementById('badge-progress-bar').style.width = stats.next_badge.progress_pct + '%';
+          }, 300);
+        }
+      } catch (e) { showToast('Error loading stats'); }
+    }
+
+    function animateValue(id, target, suffix = '') {
+      const el = document.getElementById(id);
+      const start = 0;
+      const duration = 1000;
+      const startTime = performance.now();
+      const isFloat = String(target).includes('.');
+
+      function update(now) {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const current = start + (target - start) * eased;
+        el.innerText = (isFloat ? current.toFixed(2) : Math.floor(current)) + suffix;
+        if (progress < 1) requestAnimationFrame(update);
+      }
+      requestAnimationFrame(update);
+    }
+
+    // ---- Load Trips ----
+    async function loadTrips() {
+      const offset = (currentPage - 1) * PER_PAGE;
+      const mode = document.getElementById('mode-filter').value;
+      try {
+        const trips = await apiCall('/trips/my?limit=' + PER_PAGE + '&offset=' + offset + '&mode=' + mode);
+        const tbody = document.getElementById('trips-body');
+        const emptyState = document.getElementById('empty-state');
+        tbody.innerHTML = '';
+
+        if (!trips.length && currentPage === 1) {
+          emptyState.style.display = 'block';
+          document.getElementById('next-page').disabled = true;
+          return;
+        }
+        emptyState.style.display = 'none';
+
+        trips.forEach(t => {
+          const modeClass = 'mode-' + t.mode;
+          const photoIcon = t.has_photo_proof ? ' <span title="Photo Proof Verified" style="font-size:0.85rem;">📸</span>' : '';
+          tbody.innerHTML += '<tr>' +
+            '<td>' + new Date(t.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) + '</td>' +
+            '<td><span class="mode-pill ' + modeClass + '">' + t.mode.toUpperCase() + '</span>' + photoIcon + '</td>' +
+            '<td>' + t.distance_km + ' km</td>' +
+            '<td style="color: var(--green); font-weight: 600;">+' + t.co2_saved_kg + 'kg</td>' +
+            '<td style="color: var(--amber); font-weight: 600;">+' + t.points_earned + '</td>' +
+            '<td><span class="hash" title="' + t.tx_hash + '">' + t.tx_hash.substring(0, 10) + '...</span></td>' +
+            '</tr>';
+        });
+
+        document.getElementById('prev-page').disabled = currentPage === 1;
+        document.getElementById('next-page').disabled = trips.length < PER_PAGE;
+        document.getElementById('page-info').innerText = 'Page ' + currentPage;
+      } catch (e) { showToast('Error loading history'); }
+    }
+
+    // ---- Load Leaderboard ----
+    async function loadLeaderboard() {
+      try {
+        const leaders = await apiCall('/trips/leaderboard');
+        const tbody = document.getElementById('leaderboard-body');
+        tbody.innerHTML = '';
+        const medals = ['🥇', '🥈', '🥉', '4.', '5.'];
+        leaders.forEach((l, i) => {
+          tbody.innerHTML += '<tr>' +
+            '<td style="font-size: 1.1rem;">' + medals[i] + '</td>' +
+            '<td style="font-weight: 600;">' + l.name + '</td>' +
+            '<td style="color: var(--green);">' + l.total_co2_saved_kg + 'kg</td>' +
+            '<td>' + l.badge + '</td>' +
+            '</tr>';
+        });
+      } catch (e) {}
+    }
+
+    // ---- CO2 Live Preview ----
+    const previewDebounced = debounce(async () => {
+      const mode = document.getElementById('mode').value;
+      const dist = parseFloat(document.getElementById('distance').value);
+      const preview = document.getElementById('co2-preview');
+      if (dist > 0) {
+        try {
+          const r = await apiCall('/trips/preview', 'POST', { mode, distance_km: dist });
+          document.getElementById('co2-preview-val').innerText = r.co2_saved_kg + ' kg CO₂ saved';
+          preview.style.display = 'inline-flex';
+        } catch(e) { preview.style.display = 'none'; }
+      } else {
+        preview.style.display = 'none';
+      }
+    }, 500);
+
+    document.getElementById('distance').addEventListener('input', previewDebounced);
+    document.getElementById('mode').addEventListener('change', previewDebounced);
+
+    // ---- Log Trip ----
+    document.getElementById('log-trip-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('log-btn');
+      const mode = document.getElementById('mode').value;
+      const distance = parseFloat(document.getElementById('distance').value);
+      btn.innerText = 'Logging...';
+      btn.disabled = true;
+      try {
+        const r = await apiCall('/trips', 'POST', { mode, distance_km: distance });
+        showToast('✅ ' + r.co2_saved_kg + 'kg saved · +' + r.points_earned + ' pts · Tx: ' + r.tx_hash.substring(0,8) + '...');
+        if (r.badge_awarded) setTimeout(() => showToast('🎉 New Badge: ' + r.badge_awarded), 1500);
+        if (r.shield_awarded) setTimeout(() => showToast('🛡️ 7-Day Streak! You earned a Streak Shield!'), 3000);
+        if (r.streak_freeze_used) setTimeout(() => showToast('🛡️ Shield used to save your streak!'), 1500);
+        e.target.reset();
+        document.getElementById('co2-preview').style.display = 'none';
+        currentPage = 1;
+        loadStats();
+        loadTrips();
+        loadLeaderboard();
+      } catch (err) {
+        showToast(err.message);
+      }
+      btn.innerText = 'Log Trip 🌿';
+      btn.disabled = false;
+    });
+
+    document.getElementById('mode-filter').addEventListener('change', () => { currentPage = 1; loadTrips(); });
+    document.getElementById('prev-page').addEventListener('click', () => { if (currentPage > 1) { currentPage--; loadTrips(); } });
+    document.getElementById('next-page').addEventListener('click', () => { currentPage++; loadTrips(); });
+
+    // ---- Environmental Impact ----
+    async function loadImpact() {
+      try {
+        const r = await apiCall('/trips/impact');
+        animateValue('impact-trees', parseFloat(r.trees_planted) || 0);
+        animateValue('impact-bottles', r.plastic_bottles_recycled || 0);
+        animateValue('impact-km', parseFloat(r.km_driven_avoided) || 0);
+        animateValue('impact-charges', r.phone_charges || 0);
+        animateValue('impact-led', r.led_bulb_hours || 0);
+        
+        // Feature 3: Show equivalents below the CO2 saved stat card
+        const mini = document.getElementById('co2-mini-equivalents');
+        mini.innerText = `≈ 🌳 ${r.trees_planted} trees | 📱 ${r.phone_charges} charges`;
+        mini.style.display = 'block';
+      } catch (e) {}
+    }
+
+    // ---- Rewards Marketplace ----
+    var REWARD_CATALOG = [
+      { id: 'coffee', emoji: '☕', name: 'Free Coffee', cost: 50, desc: 'At partner cafes' },
+      { id: 'bus_pass', emoji: '🚌', name: 'Bus Day Pass', cost: 100, desc: 'BMTC/DTC pass' },
+      { id: 'metro_voucher', emoji: '🚇', name: 'Metro Voucher', cost: 150, desc: '₹50 metro credit' },
+      { id: 'amazon_gc', emoji: '🛒', name: 'Amazon ₹100', cost: 200, desc: 'Gift card' },
+      { id: 'tree_plant', emoji: '🌳', name: 'Plant a Tree', cost: 75, desc: 'In your name' },
+      { id: 'gym_pass', emoji: '🏋️', name: 'Gym Day Pass', cost: 120, desc: 'Partner gyms' }
+    ];
+
+    var currentPoints = 0;
+
+    function renderRewards() {
+      var grid = document.getElementById('rewards-grid');
+      grid.innerHTML = '';
+      REWARD_CATALOG.forEach(function(r) {
+        var canAfford = currentPoints >= r.cost;
+        grid.innerHTML += '<div class="reward-card ' + (canAfford ? '' : 'reward-locked') + '">' +
+          '<span class="reward-emoji">' + r.emoji + '</span>' +
+          '<h4>' + r.name + '</h4>' +
+          '<p class="reward-desc">' + r.desc + '</p>' +
+          '<div class="reward-cost">' + r.cost + ' pts</div>' +
+          '<button ' + (canAfford ? '' : 'disabled') + ' onclick="redeemReward(\'' + r.id + '\', \'' + r.name + '\', ' + r.cost + ')" class="' + (canAfford ? '' : 'secondary') + '" style="width:100%; padding: 8px; font-size: 0.82rem;">' + (canAfford ? 'Redeem' : '🔒 Need ' + (r.cost - currentPoints) + ' more') + '</button>' +
+          '</div>';
+      });
+    }
+
+    async function redeemReward(id, name, cost) {
+      if (!confirm('Redeem "' + name + '" for ' + cost + ' points?')) return;
+      try {
+        var r = await apiCall('/rewards/redeem', 'POST', { reward_type: id, points_spent: cost });
+        showToast('🎉 Redeemed ' + name + '! New balance: ' + r.new_balance + ' pts');
+        currentPoints = r.new_balance;
+        document.getElementById('pts-balance').innerText = currentPoints + 'pts';
+        renderRewards();
+        loadStats();
+      } catch (e) { showToast(e.message); }
+    }
+    window.redeemReward = redeemReward;
+
+    // ---- Personal CO2 Trend Chart ----
+    var personalChart = null;
+    async function loadPersonalChart() {
+      try {
+        var trips = await apiCall('/trips/my?limit=7&offset=0&mode=all');
+        if (!trips.length) return;
+        trips.reverse();
+        var labels = trips.map(function(t) { return new Date(t.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }); });
+        var data = trips.map(function(t) { return t.co2_saved_kg; });
+
+        var ctx = document.getElementById('personalChart').getContext('2d');
+        if (personalChart) personalChart.destroy();
+        personalChart = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'CO₂ Saved (kg)',
+              data: data,
+              backgroundColor: function(context) {
+                var g = context.chart.ctx.createLinearGradient(0, 0, 0, 200);
+                g.addColorStop(0, 'rgba(0,230,118,0.6)');
+                g.addColorStop(1, 'rgba(0,230,118,0.1)');
+                return g;
+              },
+              borderColor: '#00e676',
+              borderWidth: 1.5,
+              borderRadius: 8,
+              borderSkipped: false
+            }]
+          },
+          options: {
+            plugins: { legend: { display: false } },
+            scales: {
+              y: { ticks: { color: '#6e7890' }, grid: { color: 'rgba(255,255,255,0.04)' } },
+              x: { ticks: { color: '#6e7890' }, grid: { display: false } }
+            },
+            animation: { duration: 800, easing: 'easeInOutQuart' }
+          }
+        });
+      } catch (e) {}
+    }
+
+    // Override loadStats to also update rewards balance
+    var originalLoadStats = loadStats;
+    loadStats = async function() {
+      await originalLoadStats();
+      try {
+        var stats = await apiCall('/rewards/my');
+        currentPoints = stats.current_points;
+        document.getElementById('pts-balance').innerText = currentPoints + 'pts';
+        renderRewards();
+      } catch(e) {}
+    };
+
+    // Init
+    loadStats();
+    loadTrips();
+    loadLeaderboard();
+    loadImpact();
+    loadPersonalChart();
+    setInterval(loadLeaderboard, 60000);
+  </script>
+</body>
+</html>
+
