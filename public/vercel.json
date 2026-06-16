@@ -3,10 +3,6 @@
     {
       "source": "/api/:match*",
       "destination": "https://green-move.onrender.com/api/:match*"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/$1"
     }
   ]
 }
