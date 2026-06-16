@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:match*",
-      "destination": "https://culture-brunt-prelude.ngrok-free.dev/api/:match*"
+      "destination": "https://green-move.onrender.com/api/:match*"
     },
     {
       "source": "/(.*)",
